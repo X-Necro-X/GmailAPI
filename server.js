@@ -4,4 +4,4 @@ var express = require('express'),
 
 app.listen(port);
 
-console.log('Gmail RESTful API server started on: ' + port);
+console.log('Server started on: ' + port);

@@ -16,5 +16,11 @@
   "bugs": {
     "url": "https://github.com/X-Necro-X/GmailAPI/issues"
   },
-  "homepage": "https://github.com/X-Necro-X/GmailAPI#readme"
+  "homepage": "https://github.com/X-Necro-X/GmailAPI#readme",
+  "dependencies": {
+    "express": "^4.17.1"
+  },
+  "devDependencies": {
+    "nodemon": "^2.0.7"
+  }
 }
