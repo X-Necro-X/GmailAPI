@@ -11,7 +11,7 @@ exports.auth = function (req, res) {
             client_id,
             redirect_uris
         } = creds.web;
-        res.redirect(auth_uri + '?client_id=' + client_id + '&redirect_uri=' + redirect_uris[0] + '&response_type=code' + '&scope=' + scope);
+        res.redirect(auth_uri + '?client_id=' + client_id + '&redirect_uri=' + redirect_uris[0] + '&response_type=code' + '&scope=' + scope+'&access_type=offline');
     });
 };
 
@@ -31,9 +31,13 @@ exports.redirect = function (req, res) {
             'client_secret': client_secret,
             'redirect_uri': redirect_uris[0],
             'grant_type': 'authorization_code'
-        }, (err, resp)=>{
-            if(err) return console.log('ERROR');
-            res.send(resp);
+        }, (err, resp) => {
+            if (err) return console.log('ERROR');
+            res.send(JSON.stringify(resp));
+            // fs.writeFile('token.json', JSON.stringify(resp), (err) => {
+            //     if (err) return console.log('Error saving credentials');
+            //     res.send('Credentials saved!')
+            // });
         });
     });
 }
