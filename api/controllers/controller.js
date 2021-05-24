@@ -1,25 +1,38 @@
 const fs = require('fs');
 const axios = require("axios");
-const creds = require("../../credentials.json");
 
 exports.auth = function (req, res) {
-    const scope = 'https://www.googleapis.com/auth/gmail.send';
-    const {
-        auth_uri,
-        client_id,
-        redirect_uris
-    } = creds.web;
-    res.redirect(auth_uri +
-        '?client_id=' + encodeURIComponent(client_id) +
-        '&redirect_uri=' + encodeURIComponent(redirect_uris[0]) +
-        '&response_type=code' +
-        '&scope=' + encodeURIComponent(scope) +
-        '&access_type=offline'
-    );
+    fs.readFile('credentials.json', (err, content) => {
+        creds = JSON.parse(content);
+        if (err){
+            console.log(err);
+            res.send('Server side error: Please add credentials.json! Refer README.md for more details.');
+            return
+        }
+        const scope = 'https://www.googleapis.com/auth/gmail.send';
+        const {
+            auth_uri,
+            client_id,
+            redirect_uris
+        } = creds.web;
+        res.redirect(auth_uri +
+            '?client_id=' + encodeURIComponent(client_id) +
+            '&redirect_uri=' + encodeURIComponent(redirect_uris[0]) +
+            '&response_type=code' +
+            '&scope=' + encodeURIComponent(scope) +
+            '&access_type=offline'
+        );
+    });
 }
 
 exports.redirect = async function (req, res) {
-    try {
+    fs.readFile('credentials.json', async (err, content) => {
+        creds = JSON.parse(content);
+        if (err){
+            console.log(err);
+            res.send('Server side error: Please add credentials.json! Refer README.md for more details.');
+            return
+        }
         const code = req.query.code;
         const {
             token_uri,
@@ -37,34 +50,40 @@ exports.redirect = async function (req, res) {
         fs.writeFile('token.json', JSON.stringify(resp.data), (err) => {
             if (err) {
                 console.log("Error", err);
-                res.send("Error, check console");
+                res.send("Server side error:",err);
+                return;
             }
         });
         res.send('Authentication completed!');
-    } catch (err) {
-        console.log("Error", err);
-        res.send("Error, check console");
-    }
+    });
 }
 
 exports.send = function (req, res) {
+    const {to, subject, message} = req.body;
+    if (to==null || subject==null || message==null){
+        res.send('Please fill all the fields: `To`, `Subject` and `Message`');
+        return;
+    }
     fs.readFile('token.json', (err, content) => {
-        if (err) return exports.auth(req, res);
+        if (err){ 
+            res.send("Please complete the authentication first!")
+            return;
+        }
         const access_token = JSON.parse(content).access_token;
         const messageParts = [
             `From: me`,
-            `To: <${req.body.to}>`,
-            `Subject: ${req.body.subject}`,
+            `To: <${to}>`,
+            `Subject: ${subject}`,
             ``,
-            `${req.body.message}`
+            `${message}`
         ];
         const encodedRaw = Buffer.from(messageParts.join('\n')).toString('base64').replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
-        const resp = axios.post('https://gmail.googleapis.com/gmail/v1/users/me/messages/send', {
+        axios.post('https://gmail.googleapis.com/gmail/v1/users/me/messages/send', {
             "raw": `${encodedRaw}`,
             "payload": {
                 "headers": [{
                         "name": "To",
-                        "value": `${req.body.to}`
+                        "value": `${to}`
                     },
                     {
                         "name": "From",
@@ -72,7 +91,7 @@ exports.send = function (req, res) {
                     },
                     {
                         "name": "Subject",
-                        "value": `${req.body.subject}`
+                        "value": `${subject}`
                     }
                 ],
                 "mimeType": "text/plain"
